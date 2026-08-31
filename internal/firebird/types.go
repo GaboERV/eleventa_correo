@@ -88,7 +88,7 @@ func ISCTimestampToTime(ts ISC_TIMESTAMP, loc *time.Location) time.Time {
 	jd := mjd + 2400001
 	a := jd + 32044
 	b := (4*a + 3) / 146097
-	c = a - (146097*b)/4
+	c := a - (146097*b)/4
 	d := (4*c + 3) / 1461
 	e := c - (1461*d)/4
 	m := (5*e + 2) / 153
