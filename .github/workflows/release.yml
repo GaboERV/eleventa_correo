@@ -32,7 +32,8 @@ jobs:
       - name: Build GUI (Wails)
         working-directory: ./gui
         run: |
-          wails build -platform windows/amd64 -clean
+          $env:GOARCH="386"
+          wails build -platform windows/386 -clean
           if (Test-Path "build\bin\reporteador-gui.exe") {
               mkdir -Force ..\release
               move build\bin\reporteador-gui.exe ..\release\reporteador-gui.exe
@@ -42,6 +43,8 @@ jobs:
           }
 
       - name: Build Worker
+        env:
+          GOARCH: "386"
         run: go build -ldflags="-H windowsgui -s -w" -o release/worker.exe ./cmd/worker
 
       - name: Install Inno Setup
