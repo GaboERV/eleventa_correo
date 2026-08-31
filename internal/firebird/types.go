@@ -83,10 +83,10 @@ func TimeToISCTimestamp(t time.Time) ISC_TIMESTAMP {
 }
 
 func ISCTimestampToTime(ts ISC_TIMESTAMP, loc *time.Location) time.Time {
-	// MJD to Gregorian
+	// MJD to Gregorian (0 = Nov 17, 1858)
 	mjd := int(ts.Date)
-	c := mjd + 678881 + 2400001
-	a := c + 32044
+	jd := mjd + 2400001
+	a := jd + 32044
 	b := (4*a + 3) / 146097
 	c = a - (146097*b)/4
 	d := (4*c + 3) / 1461

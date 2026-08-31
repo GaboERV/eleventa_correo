@@ -40,23 +40,22 @@ func Generate(report *models.Report, cfg *models.Config, outputPath string) erro
 		Fill:      excelize.Fill{Type: "pattern", Color: []string{"D9E1F2"}, Pattern: 1},
 		Alignment: &excelize.Alignment{Horizontal: "left"},
 	})
+	// Format currency helper (Excel number format code)
+	currencyFmt := "\"$\"#,##0.00"
+
 	totalRowStyle, _ := f.NewStyle(&excelize.Style{
-		Font:      &excelize.Font{Bold: true, Color: "000000"},
-		Fill:      excelize.Fill{Type: "pattern", Color: []string{"F2F2F2"}, Pattern: 1},
-		Border:    []excelize.Border{{Type: "top", Style: 1, Color: "000000"}, {Type: "bottom", Style: 2, Color: "000000"}},
-		NumFmt:    164,
+		Font:         &excelize.Font{Bold: true, Color: "000000"},
+		Fill:         excelize.Fill{Type: "pattern", Color: []string{"F2F2F2"}, Pattern: 1},
+		Border:       []excelize.Border{{Type: "top", Style: 1, Color: "000000"}, {Type: "bottom", Style: 2, Color: "000000"}},
+		CustomNumFmt: &currencyFmt,
 	})
 	currencyStyle, _ := f.NewStyle(&excelize.Style{
-		NumFmt: 164, // Custom currency or standard
+		CustomNumFmt: &currencyFmt,
 	})
 	boldCurrencyStyle, _ := f.NewStyle(&excelize.Style{
-		Font:   &excelize.Font{Bold: true},
-		NumFmt: 164,
+		Font:         &excelize.Font{Bold: true},
+		CustomNumFmt: &currencyFmt,
 	})
-
-	// Format currency helper (Excel number format code)
-	// Builtin 164 is $#,##0.00
-	currencyFmt := "$#,##0.00"
 
 	// Calculate overall metrics
 	var totalVentasGlobal int64
