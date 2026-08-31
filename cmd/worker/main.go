@@ -79,7 +79,7 @@ func main() {
 		return
 	}
 
-	excelPath := filepath.Join(installDir, fmt.Sprintf("Reporte_%s.xlsx", time.Now().Format("20060102")))
+	excelPath := filepath.Join(`C:\ProgramData\ReporteadorPDVEmail`, fmt.Sprintf("Reporte_%s.xlsx", time.Now().Format("20060102")))
 	if err := excel.Generate(report, cfg, excelPath); err != nil {
 		log.Fatalf("Error generando excel: %v", err)
 	}

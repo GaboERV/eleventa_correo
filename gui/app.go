@@ -99,7 +99,7 @@ func (a *App) GenerateAndSend(startDateStr, endDateStr string) error {
 	}
 
 	// Generate Excel
-	excelPath := filepath.Join(a.installDir, "reporte.xlsx")
+	excelPath := filepath.Join(`C:\ProgramData\ReporteadorPDVEmail`, "reporte.xlsx")
 	if err := excel.Generate(report, cfg, excelPath); err != nil {
 		return fmt.Errorf("error generando excel: %w", err)
 	}
