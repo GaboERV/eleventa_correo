@@ -13,12 +13,6 @@ import (
 	"github.com/GaboERV/reporteador-email/internal/models"
 )
 
-const (
-	defaultDllDir    = `C:\Program Files (x86)\AbarrotesPDV`
-	defaultOriginFDB = `C:\Program Files (x86)\AbarrotesPDV\db\PDVDATA.FDB`
-	defaultTempFDB   = `C:\Users\Public\PDVDATA_SNAP_MAIL.FDB`
-)
-
 // App struct
 type App struct {
 	ctx        context.Context
@@ -39,17 +33,33 @@ func (a *App) startup(ctx context.Context) {
 
 // LoadConfig returns the current configuration
 func (a *App) LoadConfig() (*models.Config, error) {
-	cfg, err := models.LoadConfig(a.installDir)
+	cfg, err := models.LoadConfig()
 	if err != nil {
-		// Return empty config if not exists
-		return &models.Config{}, nil
+		// Return empty config with default paths if not exists
+		return &models.Config{
+			DllDir:    `C:\Program Files (x86)\AbarrotesPDV`,
+			OriginFDB: `C:\Program Files (x86)\AbarrotesPDV\db\PDVDATA.FDB`,
+			TempFDB:   `C:\Users\Public\PDVDATA_SNAP_MAIL.FDB`,
+			AutoDay:   "Monday",
+			AutoTime:  "08:00",
+		}, nil
+	}
+	// Fallbacks if they saved empty advanced paths before
+	if cfg.DllDir == "" {
+		cfg.DllDir = `C:\Program Files (x86)\AbarrotesPDV`
+	}
+	if cfg.OriginFDB == "" {
+		cfg.OriginFDB = `C:\Program Files (x86)\AbarrotesPDV\db\PDVDATA.FDB`
+	}
+	if cfg.TempFDB == "" {
+		cfg.TempFDB = `C:\Users\Public\PDVDATA_SNAP_MAIL.FDB`
 	}
 	return cfg, nil
 }
 
 // SaveConfig saves the configuration
 func (a *App) SaveConfig(cfg *models.Config) error {
-	return models.SaveConfig(a.installDir, cfg)
+	return models.SaveConfig(cfg)
 }
 
 // GenerateAndSend manually extracts data and emails it
@@ -69,17 +79,13 @@ func (a *App) GenerateAndSend(startDateStr, endDateStr string) error {
 	}
 	end = end.Add(23*time.Hour + 59*time.Minute + 59*time.Second) // End of day
 
-	if err := extractor.CopyFDB(defaultOriginFDB, defaultTempFDB); err != nil {
+	if err := extractor.CopyFDB(cfg.OriginFDB, cfg.TempFDB); err != nil {
 		return fmt.Errorf("error copiando base de datos: %w", err)
 	}
-	defer extractor.CleanupFDB(defaultTempFDB)
+	defer extractor.CleanupFDB(cfg.TempFDB)
 
 	// Extract
-	// The original extractor logic from models.Config might need a tweak since we changed it.
-	// We'll pass a dummy Config to the extractor since it only needed BranchID and ClientVersion.
-	dummyCfg := &models.Config{BranchName: cfg.BranchName}
-	
-	report, err := extractor.Extract(defaultDllDir, defaultTempFDB, start, end, dummyCfg)
+	report, err := extractor.Extract(cfg.DllDir, cfg.TempFDB, start, end, cfg)
 	if err != nil {
 		return fmt.Errorf("error en extracción: %w", err)
 	}

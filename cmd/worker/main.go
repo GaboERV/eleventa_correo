@@ -13,12 +13,6 @@ import (
 	"github.com/GaboERV/reporteador-email/internal/models"
 )
 
-const (
-	defaultDllDir    = `C:\Program Files (x86)\AbarrotesPDV`
-	defaultOriginFDB = `C:\Program Files (x86)\AbarrotesPDV\db\PDVDATA.FDB`
-	defaultTempFDB   = `C:\Users\Public\PDVDATA_SNAP_WORKER.FDB`
-)
-
 func main() {
 	dir, _ := os.Executable()
 	installDir := filepath.Dir(dir)
@@ -32,7 +26,7 @@ func main() {
 	log.Println("========================================")
 	log.Println("Ejecución Automática (Worker) Iniciada")
 	
-	cfg, err := models.LoadConfig(installDir)
+	cfg, err := models.LoadConfig()
 	if err != nil {
 		log.Fatalf("Error cargando config: %v", err)
 	}
@@ -41,31 +35,37 @@ func main() {
 		log.Fatalf("Configuración incompleta, abortando.")
 	}
 
-	// Calculate date range: since it's typically run on Monday, let's export the previous 7 days
-	// Or dynamically: from last run date to today.
-	// We'll use the last_run state to know the last time we reported.
-	lastRun, err := models.LoadLastRun(installDir)
+	// Fallbacks if advanced config is empty
+	if cfg.DllDir == "" {
+		cfg.DllDir = `C:\Program Files (x86)\AbarrotesPDV`
+	}
+	if cfg.OriginFDB == "" {
+		cfg.OriginFDB = `C:\Program Files (x86)\AbarrotesPDV\db\PDVDATA.FDB`
+	}
+	if cfg.TempFDB == "" {
+		cfg.TempFDB = `C:\Users\Public\PDVDATA_SNAP_MAIL.FDB`
+	}
+
+	lastRun, err := models.LoadLastRun()
 	var start time.Time
 	if err == nil && lastRun.LastSuccessfulReportEnd != "" {
 		start, _ = time.Parse(time.RFC3339, lastRun.LastSuccessfulReportEnd)
 	} else {
-		// Default to 7 days ago if no last run
 		start = time.Now().AddDate(0, 0, -7)
 	}
 
 	// Truncate start to beginning of day
 	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
-	end := time.Now() // up to right now
+	end := time.Now()
 
 	log.Printf("Extrayendo desde %s hasta %s", start.Format("2006-01-02"), end.Format("2006-01-02"))
 
-	if err := extractor.CopyFDB(defaultOriginFDB, defaultTempFDB); err != nil {
+	if err := extractor.CopyFDB(cfg.OriginFDB, cfg.TempFDB); err != nil {
 		log.Fatalf("Error copiando DB: %v", err)
 	}
-	defer extractor.CleanupFDB(defaultTempFDB)
+	defer extractor.CleanupFDB(cfg.TempFDB)
 
-	dummyCfg := &models.Config{BranchName: cfg.BranchName}
-	report, err := extractor.Extract(defaultDllDir, defaultTempFDB, start, end, dummyCfg)
+	report, err := extractor.Extract(cfg.DllDir, cfg.TempFDB, start, end, cfg)
 	if err != nil {
 		log.Fatalf("Error extrayendo: %v", err)
 	}
@@ -90,12 +90,11 @@ func main() {
 
 	log.Println("Reporte enviado con éxito.")
 	
-	// Update last run
 	if lastRun == nil {
 		lastRun = &models.LastRun{}
 	}
 	lastRun.LastSuccessfulReportEnd = end.Format(time.RFC3339)
-	models.SaveLastRun(installDir, lastRun)
+	models.SaveLastRun(lastRun)
 	
 	log.Println("Ejecución finalizada correctamente.")
 }
