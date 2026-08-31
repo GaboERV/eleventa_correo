@@ -5,45 +5,57 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
-    permissions:
-      contents: write
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.22'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
 
-    - name: Install Wails
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Build GUI
-      run: |
-        cd gui
-        npm install --prefix frontend
-        wails build -platform windows/amd64
-        mkdir -p ../release
-        cp build/bin/reporteador-gui.exe ../release/reporteador-gui.exe
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-    - name: Build Worker
-      run: |
-        go build -ldflags="-H windowsgui -s -w" -o release/worker.exe ./cmd/worker
+      - name: Build GUI (Wails)
+        working-directory: ./gui
+        run: |
+          wails build -platform windows/amd64 -clean
+          if (Test-Path "build\bin\reporteador-gui.exe") {
+              mkdir -Force ..\release
+              move build\bin\reporteador-gui.exe ..\release\reporteador-gui.exe
+          } else {
+              mkdir -Force ..\release
+              move build\bin\*.exe ..\release\reporteador-gui.exe
+          }
 
-    - name: Build Installer (Inno Setup)
-      run: |
-        & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer/setup.iss
+      - name: Build Worker
+        run: go build -ldflags="-H windowsgui -s -w" -o release/worker.exe ./cmd/worker
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          installer/Output/InstalarReporteadorCorreo.exe
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Compile Installer
+        run: iscc installer/setup.iss
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            installer/Output/InstalarReporteadorCorreo.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

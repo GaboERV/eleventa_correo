@@ -1,4 +1,4 @@
-import { LoadConfig, SaveConfig, GenerateAndSend } from '../../wailsjs/go/main/App';
+import { LoadConfig, SaveConfig, GenerateAndSend } from '../wailsjs/go/main/App';
 
 document.addEventListener("DOMContentLoaded", () => {
     // Set default dates (start of month to today)
